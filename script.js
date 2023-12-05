@@ -14,7 +14,7 @@ if (alerted !== "yes") {
 // It is called when user starts adding edges by clicking on button given
 const addEdges = () => {
     if (cnt < 2) {
-        alert("Create atleast two nodes to add an edge");
+        alert("Phải tạo trên hai Node mới được thêm cạnh");
         return;
     }
 
@@ -44,9 +44,9 @@ const appendBlock = (x, y) => {
     block.innerText = cnt++;
 
     // Click event for node
-    block.addEventListener("click", (e) => {
+    block.addEventListener("click", (event) => {
         // Prevent node upon node
-        e.stopPropagation() || (window.event.cancelBubble = "true");
+        (event.stopPropagation());
 
         // If state variable addEdge is false, can't start adding edges
         if (!addEdge) return;
@@ -64,14 +64,14 @@ const appendBlock = (x, y) => {
 };
 
 // Allow creating nodes on screen by clicking
-blocks.addEventListener("click", (e) => {
+blocks.addEventListener("click", (event) => {
     if (addEdge) return;
-    if (cnt > 12) {
-        alert("cannot add more than 12 vertices");
+    if (cnt > 30) {
+        alert("Số lượng đỉnh vượt quá");
         return;
     }
-    console.log(e.x, e.y);
-    appendBlock(e.x, e.y);
+    console.log(event.x, event.y);
+    appendBlock(event.x, event.y);
 });
 
 // Function to draw a line between nodes
@@ -205,41 +205,6 @@ const findShortestPath = (el) => {
     indicatePath(parent, source);
 };
 
-const indicatePath = async (parentArr, src) => {
-    document.getElementsByClassName("path")[0].innerHTML = "";
-    for (i = 0; i < cnt; i++) {
-        let p = document.createElement("p");
-        p.innerText = "Node " + i + " --> " + src;
-        await printPath(parentArr, i, p);
-    }
-};
-
-const printPath = async (parent, j, el_p) => {
-    if (parent[j] === -1) return;
-    await printPath(parent, parent[j], el_p);
-    el_p.innerText = el_p.innerText + " " + j;
-
-    document.getElementsByClassName("path")[0].style.padding = "1rem";
-    document.getElementsByClassName("path")[0].appendChild(el_p);
-
-    // console.log(j,parent[j]);
-
-    if (j < parent[j]) {
-        let tmp = document.getElementById(`line-${j}-${parent[j]}`);
-        await colorEdge(tmp);
-    } else {
-        let tmp = document.getElementById(`line-${parent[j]}-${j}`);
-        await colorEdge(tmp);
-    }
-};
-
-const colorEdge = async (el) => {
-    if (el.style.backgroundColor !== "aqua") {
-        await wait(1000);
-        el.style.backgroundColor = "aqua";
-        el.style.height = "8px";
-    }
-};
 
 const clearScreen = () => {
     document.getElementsByClassName("path")[0].innerHTML = "";
@@ -274,4 +239,116 @@ const wait = async (t) => {
         }, t);
     });
     res = await pr;
+};
+
+// Function to find minimum spanning tree using Prim's algorithm
+const findMinimumSpanningTree = (el) => {
+    let visited = new Array(cnt).fill(false);
+    let parent = new Array(cnt).fill(-1);
+    let key = new Array(cnt).fill(Infinity);
+
+    // Start with the first node as the source
+    let source = Number(el.previousElementSibling.value);
+    if (source >= cnt || isNaN(source)) {
+        alert("Invalid source");
+        return;
+    }
+
+    key[source] = 0;
+
+    for (let count = 0; count < cnt - 1; count++) {
+        // Find the vertex with the minimum key value
+        let u = minKey(key, visited);
+
+        // Mark the picked vertex as visited
+        visited[u] = true;
+
+        // Update key values and parent index of the adjacent vertices
+        for (let v = 0; v < cnt; v++) {
+            if (dist[u][v] && visited[v] === false && dist[u][v] < key[v]) {
+                parent[v] = u;
+                key[v] = dist[u][v];
+            }
+        }
+    }
+
+    // Highlight the source node
+    document.getElementById(source).style.backgroundColor = "grey";
+
+    // Print the edges of the minimum spanning tree
+    for (let i = 0; i < cnt; i++) {
+        if (i !== source) {
+            indicateEdge(parent[i], i);
+        }
+    }
+
+    // Indicate the path
+    indicatePath(parent, source);
+};
+
+// Function to find the vertex with the minimum key value
+const minKey = (key, visited) => {
+    let min = Infinity;
+    let minIndex = -1;
+
+    for (let v = 0; v < cnt; v++) {
+        if (visited[v] === false && key[v] < min) {
+            min = key[v];
+            minIndex = v;
+        }
+    }
+
+    return minIndex;
+};
+
+// Function to indicate an edge in the minimum spanning tree
+const indicateEdge = async (src, dest) => {
+    let edgeId = `line-${Math.min(src, dest)}-${Math.max(src, dest)}`;
+    let edge = document.getElementById(edgeId);
+
+    if (edge && edge.style.backgroundColor !== "aqua") {
+        await wait(1000);
+        edge.style.backgroundColor = "aqua";
+        edge.style.height = "8px";
+    }
+};
+
+// Function to indicate the path using the parent array
+const indicatePath = async (parentArr, src) => {
+    document.getElementsByClassName("path")[0].innerHTML = "";
+    for (let i = 0; i < cnt; i++) {
+        let p = document.createElement("p");
+        p.innerText = "Node " + i + " --> " + src;
+        await printPath(parentArr, i, p);
+    }
+};
+
+// Function to print the path recursively
+const printPath = async (parent, j, el_p) => {
+    if (parent[j] === -1) return;
+    await printPath(parent, parent[j], el_p);
+    el_p.innerText = el_p.innerText + " " + j;
+
+    document.getElementsByClassName("path")[0].style.padding = "1rem";
+    document.getElementsByClassName("path")[0].appendChild(el_p);
+
+    // Highlight the source node and edges on the path
+    if (j === parent[j]) {
+        document.getElementById(j).style.backgroundColor = "grey";
+    } else if (j < parent[j]) {
+        let tmp = document.getElementById(`line-${j}-${parent[j]}`);
+        await colorEdge(tmp);
+    } else {
+        let tmp = document.getElementById(`line-${parent[j]}-${j}`);
+        await colorEdge(tmp);
+    }
+};
+
+// Function to color an edge
+const colorEdge = async (el) => {
+    if (el.style.backgroundColor !== "aqua") {
+        await wait(1000);
+        el.style.backgroundColor = "aqua";
+        el.style.height = "8px";
+    }
 };
